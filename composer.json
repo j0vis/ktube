@@ -1,0 +1,26 @@
+{
+	"name": "ktube/ktube",
+	"description": "Hybrid-block WordPress 6.5+ tube theme — testing deps and autoload shim for PHPUnit consumers.",
+	"type": "wordpress-theme",
+	"license": "GPL-2.0-or-later",
+	"require": {
+		"php": ">=8.0"
+	},
+	"require-dev": {
+		"phpunit/phpunit": "^10.5"
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"Ktube\\Tests\\": "tests/phpunit/ktube/"
+		}
+	},
+	"scripts": {
+		"test": "phpunit"
+	},
+	"config": {
+		"sort-packages": true,
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
+	}
+}

@@ -1,0 +1,16 @@
+node_modules/
+.vite/
+
+.DS_Store
+Thumbs.db
+
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Stray nul artifact (operator-miscreated on Windows when typing `> nul` in path)
+# — not an actual theme file; ignore so it never reaches the index.
+/nul
+
+*.log

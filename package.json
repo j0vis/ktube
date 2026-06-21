@@ -1,0 +1,22 @@
+{
+  "name": "ktube",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hybrid-block WordPress 6.5+ tube theme — hand-authored CSS + plain JS + vendored Video.js. Zero npm install required at clone-time.",
+  "license": "GPL-2.0-or-later",
+  "engines": {
+    "php": ">=8.3",
+    "wp": ">=6.5"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:phpunit": "php tests/phpunit/run.php",
+    "validate": "node tools/validate.mjs",
+    "release": "node tools/release.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.0",
+    "vitest": "^2.1.0"
+  }
+}

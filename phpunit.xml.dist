@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.5/phpunit.xsd"
+	bootstrap="tests/phpunit/bootstrap.php"
+	colors="true"
+	beStrictAboutTestsThatDoNotTestAnything="false"
+	cacheResultFile="tests/phpunit/.phpunit.result.cache"
+	executionOrder="random"
+	failOnRisky="false"
+	failOnWarning="false">
+	<testsuites>
+		<testsuite name="ktube-default">
+			<directory suffix="Test.php">tests/phpunit/ktube</directory>
+		</testsuite>
+	</testsuites>
+	<coverage processUncoveredFiles="true">
+		<include>
+			<directory suffix=".php">includes</directory>
+		</include>
+		<exclude>
+			<directory suffix=".php">tests</directory>
+			<directory suffix=".php">vendor</directory>
+		</exclude>
+	</coverage>
+	<php>
+		<const name="ABSPATH" value="/var/www/html/wp/" />
+		<const name="KTUBE_VERSION" value="0.1.0" />
+		<env name="WP_DEBUG" value="false" />
+	</php>
+</phpunit>
