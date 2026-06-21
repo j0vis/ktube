@@ -1,0 +1,855 @@
+/*
+ * ktube main stylesheet — HAND-AUTHORED source of truth.
+ *
+ * Phase 0-A 2026-06-21 reversal: this file is NOT compiled from .scss by
+ * any build step. It is shipped verbatim. WordPress enqueues it directly
+ * via wp_enqueue_style() in includes/setup.php.
+ *
+ * Modern CSS is enough that we no longer need a preprocessor:
+ *   - Custom properties for tokens (lines ~10–28)
+ *   - Native @supports instead of a Sass @if
+ *   - :where / :is / :has / media() / container queries / color-mix()
+ *     in modern browsers do what Sass would have done.
+ *
+ * The file is hand-indented for readability. The Phase 5 Customizer-derived
+ * inline <style> block (ktube_build_customizer_css in includes/customizer.php)
+ * is appended AFTER this linked stylesheet, so its :root vars win source-order
+ * without specificity tricks. Per-breakpoint var swaps therefore only live
+ * in the inline CSS block.
+ */
+
+:root[data-theme="light"] {
+	--ktube-color-bg: #ffffff;
+	--ktube-color-surface: #f4f4f5;
+	--ktube-color-text: #18181b;
+	--ktube-color-link: #2563eb;
+	--ktube-color-accent: #db2777;
+}
+
+:root[data-theme="dark"] {
+	--ktube-color-bg: #0e0e10;
+	--ktube-color-surface: #18181b;
+	--ktube-color-text: #e4e4e7;
+	--ktube-color-link: #60a5fa;
+	--ktube-color-accent: #f472b6;
+}
+
+:root {
+	--ktube-font-size-base: 1rem;
+	--ktube-font-size-h1: clamp(2rem, 4vw, 2.75rem);
+	--ktube-font-size-h2: clamp(1.5rem, 3vw, 2rem);
+	--ktube-font-size-h3: clamp(1.25rem, 2.5vw, 1.5rem);
+
+	--ktube-space-xs: 0.25rem;
+	--ktube-space-sm: 0.5rem;
+	--ktube-space-md: 1rem;
+	--ktube-space-lg: 2rem;
+	--ktube-space-xl: 4rem;
+
+	--ktube-grid-cols-desktop: 4;
+	--ktube-grid-cols-tablet: 3;
+	--ktube-grid-cols-mobile: 2;
+	--ktube-thumb-cols: 3;
+	--ktube-thumb-cols-desktop: 3;
+	--ktube-thumb-cols-mobile: 2;
+	--ktube-card-aspect-ratio: 16 / 9;
+	--ktube-card-object-fit: cover;
+}
+
+@supports (aspect-ratio: 1) {
+	.ktube-card {
+		aspect-ratio: var(--ktube-card-aspect-ratio);
+	}
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	background: var(--ktube-color-bg);
+	color: var(--ktube-color-text);
+	font-family: var(--wp--preset--font-family--base, system-ui, sans-serif);
+}
+
+a {
+	color: var(--ktube-color-link);
+	text-decoration: underline;
+	text-underline-offset: 0.15em;
+}
+a:focus-visible {
+	outline: 2px solid var(--ktube-color-accent);
+	outline-offset: 2px;
+}
+
+.skip-link {
+	position: absolute;
+	left: -10000px;
+	top: auto;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+}
+.skip-link:focus {
+	left: 1rem;
+	top: 1rem;
+	width: auto;
+	height: auto;
+	padding: 0.5rem 1rem;
+	background: var(--ktube-color-accent);
+	color: var(--ktube-color-bg);
+	z-index: 1000;
+}
+
+/* ---------- Video grid + card ---------- */
+
+.ktube-video-grid {
+	display: grid;
+	grid-template-columns: repeat(var(--ktube-grid-cols-desktop), minmax(0, 1fr));
+	gap: var(--ktube-space-md);
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+.ktube-video-grid__item {
+	display: contents;
+}
+.ktube-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ktube-space-xs);
+	background: var(--ktube-color-surface);
+	color: var(--ktube-color-text);
+	text-decoration: none;
+	border-radius: 0.5rem;
+	overflow: hidden;
+	isolation: isolate;
+}
+.ktube-card:hover {
+	transform: translateY(-2px);
+	transition: transform 0.15s ease;
+}
+.ktube-card:focus-visible {
+	outline: 2px solid var(--ktube-color-accent);
+	outline-offset: 2px;
+}
+.ktube-card__thumb-wrap {
+	position: relative;
+	display: block;
+	aspect-ratio: var(--ktube-card-aspect-ratio);
+	background: #000;
+}
+.ktube-card__thumb {
+	width: 100%;
+	height: 100%;
+	object-fit: var(--ktube-card-object-fit);
+}
+.ktube-card__thumb--placeholder {
+	display: block;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(135deg, #444, #222);
+}
+.ktube-card__duration {
+	position: absolute;
+	right: 0.5rem;
+	bottom: 0.5rem;
+	padding: 0.125rem 0.375rem;
+	background: #000000bf;
+	color: #fff;
+	font-size: 0.75rem;
+	border-radius: 0.25rem;
+}
+.ktube-card__meta {
+	display: block;
+	padding: var(--ktube-space-sm) var(--ktube-space-md);
+}
+.ktube-card__title {
+	display: block;
+	font-weight: 600;
+	line-height: 1.3;
+}
+.ktube-card__channel,
+.ktube-card__views {
+	display: block;
+	font-size: 0.85rem;
+	opacity: 0.7;
+}
+.ktube-card__channel a {
+	color: inherit;
+	text-decoration: none;
+}
+.ktube-card__channel a:hover {
+	text-decoration: underline;
+}
+.ktube-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--ktube-space-md);
+	padding: var(--ktube-space-md) 0;
+}
+.ktube-related {
+	margin-top: var(--ktube-space-xl);
+}
+.ktube-related__title {
+	font-size: var(--ktube-font-size-h3);
+	margin-bottom: var(--ktube-space-md);
+}
+.ktube-player-wrap {
+	aspect-ratio: var(--ktube-card-aspect-ratio);
+	background: #000;
+	border-radius: 0.5rem;
+	overflow: hidden;
+	margin: var(--ktube-space-md) 0;
+}
+.ktube-player {
+	width: 100%;
+	height: 100%;
+}
+.ktube-player-embed {
+	position: relative;
+	padding-bottom: 56.25%;
+	height: 0;
+}
+.ktube-player-embed iframe {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	border: 0;
+}
+.ktube-archive,
+.ktube-single {
+	padding: var(--ktube-space-md) 0;
+}
+.ktube-404 {
+	padding: var(--ktube-space-lg) 0;
+	text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ktube-card:hover {
+		transform: none;
+	}
+}
+
+.ktube-card__trailer {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: var(--ktube-card-object-fit);
+	pointer-events: none;
+}
+
+/* ---------- Blog CPT ---------- */
+
+.ktube-blog-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ktube-space-lg);
+	list-style: none;
+	padding: 0;
+	margin: 0 var(--ktube-space-md);
+}
+.ktube-blog-card {
+	background: var(--ktube-color-surface);
+	border-radius: 0.5rem;
+	overflow: hidden;
+	border: 1px solid transparent;
+	transition: border-color 0.15s ease;
+}
+.ktube-blog-card:focus-within {
+	border-color: var(--ktube-color-accent);
+}
+.ktube-blog-card__link {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: var(--ktube-space-md);
+	padding: var(--ktube-space-md);
+	text-decoration: none;
+	color: inherit;
+}
+@media (min-width: 768px) {
+	.ktube-blog-card__link {
+		grid-template-columns: 240px 1fr;
+	}
+}
+.ktube-blog-card__link:focus-visible {
+	outline: 2px solid var(--ktube-color-accent);
+	outline-offset: 2px;
+}
+.ktube-blog-card__thumb-wrap {
+	aspect-ratio: var(--ktube-card-aspect-ratio);
+	background: #000;
+	overflow: hidden;
+	border-radius: 0.25rem;
+}
+.ktube-blog-card__thumb-wrap img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.ktube-blog-card__title {
+	font-size: var(--ktube-font-size-h3);
+	margin: 0 0 var(--ktube-space-sm) 0;
+	line-height: 1.3;
+}
+.ktube-blog-card__excerpt {
+	color: var(--ktube-color-text);
+	opacity: 0.85;
+	margin: 0;
+}
+.ktube-blog-card__meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--ktube-space-sm);
+	font-size: 0.85rem;
+	opacity: 0.7;
+	margin: var(--ktube-space-sm) 0 0;
+}
+.ktube-article {
+	max-width: 720px;
+	margin: 0 auto;
+	padding: var(--ktube-space-md);
+}
+.ktube-article__header {
+	margin-bottom: var(--ktube-space-lg);
+}
+.ktube-article__title {
+	font-size: var(--ktube-font-size-h1);
+	margin: 0 0 var(--ktube-space-md) 0;
+}
+.ktube-article__meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--ktube-space-md);
+	font-size: 0.85rem;
+	opacity: 0.7;
+	margin: 0;
+}
+.ktube-article__hero {
+	margin: var(--ktube-space-md) 0 var(--ktube-space-lg);
+	aspect-ratio: 16 / 9;
+	background: #000;
+	border-radius: 0.5rem;
+	overflow: hidden;
+}
+.ktube-article__hero img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.ktube-article__body {
+	line-height: 1.75;
+}
+.ktube-article__footer {
+	margin-top: var(--ktube-space-xl);
+	padding-top: var(--ktube-space-md);
+	border-top: 1px solid var(--ktube-color-surface);
+}
+.ktube-article__tags-label {
+	font-weight: 600;
+}
+.ktube-related--blog {
+	max-width: 1080px;
+	margin: var(--ktube-space-xl) auto 0;
+	padding: 0 var(--ktube-space-md);
+}
+.ktube-related--blog .ktube-blog-list {
+	margin: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+	.ktube-blog-card {
+		transition: none;
+	}
+}
+
+/* ---------- Photos CPT + lightbox ---------- */
+
+.ktube-photo-grid {
+	display: grid;
+	grid-template-columns: repeat(var(--ktube-grid-cols-desktop), minmax(0, 1fr));
+	gap: var(--ktube-space-md);
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+.ktube-photo-grid__item {
+	display: contents;
+}
+.ktube-photo-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ktube-space-xs);
+	text-decoration: none;
+	color: inherit;
+	background: var(--ktube-color-surface);
+	border-radius: 0.5rem;
+	overflow: hidden;
+}
+.ktube-photo-card:focus-visible {
+	outline: 2px solid var(--ktube-color-accent);
+	outline-offset: 2px;
+}
+.ktube-photo-card__thumb-wrap {
+	position: relative;
+	aspect-ratio: var(--ktube-card-aspect-ratio);
+	background: #000;
+}
+.ktube-photo-card__thumb {
+	width: 100%;
+	height: 100%;
+	object-fit: var(--ktube-card-object-fit);
+}
+.ktube-photo-card__count {
+	position: absolute;
+	right: 0.5rem;
+	bottom: 0.5rem;
+	padding: 0.125rem 0.5rem;
+	background: #000000bf;
+	color: #fff;
+	font-size: 0.75rem;
+	border-radius: 0.25rem;
+}
+.ktube-photo-card__meta {
+	padding: var(--ktube-space-sm) var(--ktube-space-md);
+}
+.ktube-photo-card__title {
+	font-weight: 600;
+	line-height: 1.3;
+}
+.ktube-photo-card__actor {
+	font-size: 0.85rem;
+	opacity: 0.7;
+}
+.ktube-photo-set {
+	max-width: 1080px;
+	margin: 0 auto;
+	padding: var(--ktube-space-md);
+}
+.ktube-photo-set__header {
+	margin-bottom: var(--ktube-space-md);
+}
+.ktube-photo-set__title {
+	font-size: var(--ktube-font-size-h1);
+	margin: 0;
+}
+.ktube-lightbox-gallery {
+	display: grid;
+	grid-template-columns: repeat(var(--ktube-thumb-cols, 3), minmax(120px, 1fr));
+	gap: var(--ktube-space-sm);
+	margin: var(--ktube-space-md) 0;
+	list-style: none;
+	padding: 0;
+}
+.ktube-lightbox-trigger {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	border: 0;
+	padding: 0;
+	background: #000;
+	cursor: zoom-in;
+	aspect-ratio: var(--ktube-card-aspect-ratio);
+	border-radius: 0.25rem;
+	overflow: hidden;
+}
+.ktube-lightbox-trigger:focus-visible {
+	outline: 2px solid var(--ktube-color-accent);
+	outline-offset: 2px;
+}
+.ktube-lightbox-trigger img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.ktube-lightbox {
+	padding: 0;
+	border: 0;
+	background: #000000eb;
+	color: #fff;
+	max-width: 100vw;
+	max-height: 100vh;
+	width: 100vw;
+	height: 100vh;
+}
+.ktube-lightbox::backdrop {
+	background: #000000b3;
+}
+.ktube-lightbox__image {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	max-width: 90vw;
+	max-height: 90vh;
+	object-fit: contain;
+}
+.ktube-lightbox__close,
+.ktube-lightbox__nav {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	border: 0;
+	background: #0009;
+	color: #fff;
+	cursor: pointer;
+	border-radius: 0.25rem;
+	padding: 0.5rem 0.75rem;
+	font-size: 1.25rem;
+	line-height: 1;
+}
+.ktube-lightbox__close {
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+}
+.ktube-lightbox__nav--prev {
+	position: absolute;
+	top: 50%;
+	left: 1rem;
+	transform: translateY(-50%);
+}
+.ktube-lightbox__nav--next {
+	position: absolute;
+	top: 50%;
+	right: 1rem;
+	transform: translateY(-50%);
+}
+.ktube-lightbox__close:focus-visible,
+.ktube-lightbox__nav:focus-visible {
+	outline: 2px solid var(--ktube-color-accent);
+	outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+	.ktube-lightbox__image {
+		transition: none;
+		animation: none;
+	}
+}
+
+/* ---------- WCAG badge in Customizer ---------- */
+
+.ktube-cp-badge {
+	display: inline-block;
+	margin-left: 0.375rem;
+	padding: 0.125rem 0.5rem;
+	border-radius: 0.25rem;
+	font-size: 0.75rem;
+	font-weight: 600;
+	line-height: 1.4;
+	vertical-align: middle;
+	white-space: nowrap;
+}
+.ktube-cp-badge--aaa {
+	background: #14532d;
+	color: #f0fdf4;
+}
+.ktube-cp-badge--aa {
+	background: #166534;
+	color: #f0fdf4;
+}
+.ktube-cp-badge--aa-large {
+	background: #854d0e;
+	color: #fef9c3;
+}
+.ktube-cp-badge--fail {
+	background: #7f1d1d;
+	color: #fee2e2;
+}
+
+/* ---------- Theme toggle (light/dark) ---------- */
+
+.ktube-theme-toggle {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	border: 1px solid var(--ktube-color-text);
+	background: transparent;
+	color: var(--ktube-color-text);
+	font: inherit;
+	font-weight: 600;
+	line-height: 1.2;
+	padding: 0.5rem 0.75rem;
+	border-radius: 0.5rem;
+	margin-inline-start: auto;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	transition: background-color 0.12s ease-out, color 0.12s ease-out, border-color 0.12s ease-out;
+}
+.ktube-theme-toggle:hover {
+	background: var(--ktube-color-text);
+	color: var(--ktube-color-bg);
+}
+.ktube-theme-toggle:focus-visible {
+	outline: 2px solid var(--ktube-color-accent);
+	outline-offset: 2px;
+}
+.ktube-theme-toggle[aria-pressed="true"] {
+	border-color: var(--ktube-color-accent);
+	color: var(--ktube-color-accent);
+}
+.ktube-theme-toggle__icon {
+	display: inline-block;
+	width: 1.125rem;
+	height: 1.125rem;
+	background-color: currentColor;
+	mask: radial-gradient(circle at 50% 50%, transparent 0 28%, currentColor 29% 32%, transparent 33% 100%) no-repeat;
+	-webkit-mask: radial-gradient(circle at 50% 50%, transparent 0 28%, currentColor 29% 32%, transparent 33% 100%) no-repeat;
+}
+.ktube-theme-toggle[aria-pressed="false"] .ktube-theme-toggle__icon {
+	background-color: currentColor;
+}
+.ktube-theme-toggle[aria-pressed="true"] .ktube-theme-toggle__icon {
+	background-color: currentColor;
+	mask: radial-gradient(circle at 50% 50%, currentColor 0 50%, transparent 51% 100%) no-repeat;
+	-webkit-mask: radial-gradient(circle at 50% 50%, currentColor 0 50%, transparent 51% 100%) no-repeat;
+}
+.ktube-theme-toggle__label {
+	font-size: 0.875rem;
+}
+
+/* ---------- Age-gate modal ---------- */
+
+.ktube-age-gate {
+	position: fixed;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	z-index: 9999;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #000000d9;
+	padding: var(--ktube-space-md);
+	margin: 0;
+	border: 0;
+	max-width: none;
+	max-height: none;
+	color-scheme: light dark;
+}
+.ktube-age-gate__dialog {
+	background: var(--ktube-color-bg);
+	color: var(--ktube-color-text);
+	padding: var(--ktube-space-xl) var(--ktube-space-lg);
+	border-radius: 0.75rem;
+	max-width: 480px;
+	width: 100%;
+	box-shadow: 0 1.5rem 3rem #00000080;
+	display: flex;
+	flex-direction: column;
+	gap: var(--ktube-space-md);
+}
+.ktube-age-gate__title {
+	font-size: var(--ktube-font-size-h2);
+	line-height: 1.25;
+	margin: 0;
+}
+.ktube-age-gate__msg {
+	font-size: 1rem;
+	line-height: 1.5;
+	margin: 0;
+	opacity: 0.85;
+}
+.ktube-age-gate__actions {
+	display: flex;
+	flex-direction: column;
+	gap: var(--ktube-space-sm);
+	margin-top: var(--ktube-space-md);
+}
+.ktube-age-gate__actions button {
+	justify-content: center;
+}
+.ktube-age-gate__btn {
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+	border: 0;
+	padding: 0.75rem 1rem;
+	border-radius: 0.5rem;
+	font-size: 1rem;
+	font-weight: 600;
+	line-height: 1.25;
+	cursor: pointer;
+}
+.ktube-age-gate__btn:focus-visible {
+	outline: 2px solid var(--ktube-color-accent);
+	outline-offset: 2px;
+}
+.ktube-age-gate__btn--confirm {
+	background: var(--ktube-color-accent);
+	color: var(--ktube-color-bg);
+}
+.ktube-age-gate__btn--decline {
+	background: transparent;
+	color: var(--ktube-color-text);
+	border: 1px solid var(--ktube-color-text);
+}
+dialog.ktube-age-gate[data-ktube-fallback="true"] {
+	display: flex !important;
+}
+@media (prefers-reduced-motion: no-preference) {
+	.ktube-age-gate__btn--confirm {
+		animation: ktube-age-gate-pulse 1.4s ease-in-out infinite;
+	}
+}
+@keyframes ktube-age-gate-pulse {
+	0%,
+	to {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.02);
+	}
+}
+
+/* ---------- Privacy disclosure (footer badge + page summary) ---------- */
+
+.ktube-privacy-badge {
+	margin: 0 0 var(--ktube-space-md);
+	padding: 0;
+	font-size: var(--ktube-font-size-base);
+}
+.ktube-privacy-badge__link {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--ktube-space-xs);
+	padding: var(--ktube-space-xs) var(--ktube-space-md);
+	border-radius: 9999px;
+	background: var(--ktube-color-surface);
+	color: var(--ktube-color-text);
+	border: 1px solid color-mix(in srgb, var(--ktube-color-text) 15%, transparent);
+	text-decoration: none;
+	font-weight: 600;
+	line-height: 1.2;
+	transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.ktube-privacy-badge__link:hover,
+.ktube-privacy-badge__link:focus-visible {
+	background: color-mix(in srgb, var(--ktube-color-accent) 12%, var(--ktube-color-surface));
+	border-color: color-mix(in srgb, var(--ktube-color-accent) 50%, transparent);
+	transform: translateY(-1px);
+}
+.ktube-privacy-badge__link:focus-visible {
+	outline: 2px solid var(--ktube-color-accent);
+	outline-offset: 2px;
+}
+.ktube-privacy-badge__icon {
+	font-size: 0.95em;
+	line-height: 1;
+}
+.ktube-privacy-badge__text {
+	white-space: nowrap;
+}
+.ktube-privacy-page .ktube-privacy-summary {
+	margin: 0 0 var(--ktube-space-xl);
+	padding: var(--ktube-space-lg);
+	background: var(--ktube-color-surface);
+	border: 1px solid color-mix(in srgb, var(--ktube-color-text) 10%, transparent);
+	border-radius: 12px;
+}
+.ktube-privacy-summary__heading {
+	margin: 0 0 var(--ktube-space-sm);
+	font-size: var(--ktube-font-size-h2);
+	color: var(--ktube-color-text);
+}
+.ktube-privacy-summary__lede {
+	margin: 0 0 var(--ktube-space-lg);
+	color: color-mix(in srgb, var(--ktube-color-text) 75%, transparent);
+	font-size: 0.95rem;
+}
+.ktube-privacy-summary__list {
+	margin: 0;
+	padding: 0;
+	display: grid;
+	gap: var(--ktube-space-md);
+}
+.ktube-privacy-summary__row {
+	display: grid;
+	grid-template-columns: minmax(160px, 0.5fr) 1fr;
+	gap: var(--ktube-space-lg);
+	padding: var(--ktube-space-md) 0;
+	border-top: 1px solid color-mix(in srgb, var(--ktube-color-text) 10%, transparent);
+}
+.ktube-privacy-summary__row:first-child {
+	border-top: 0;
+	padding-top: 0;
+}
+.ktube-privacy-summary__row.is-inactive {
+	opacity: 0.7;
+}
+.ktube-privacy-summary__term {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: var(--ktube-space-sm);
+	font-weight: 600;
+	color: var(--ktube-color-text);
+}
+.ktube-privacy-summary__state {
+	display: inline-block;
+	padding: 2px var(--ktube-space-sm);
+	border-radius: 9999px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	text-transform: uppercase;
+	line-height: 1.4;
+}
+.ktube-privacy-summary__row.is-active .ktube-privacy-summary__state {
+	background: color-mix(in srgb, var(--ktube-color-accent) 20%, transparent);
+	color: var(--ktube-color-accent);
+}
+.ktube-privacy-summary__row.is-inactive .ktube-privacy-summary__state {
+	background: color-mix(in srgb, var(--ktube-color-text) 10%, transparent);
+	color: color-mix(in srgb, var(--ktube-color-text) 65%, transparent);
+}
+.ktube-privacy-summary__def {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--ktube-space-xs);
+	color: var(--ktube-color-text);
+}
+.ktube-privacy-summary__value {
+	display: inline-block;
+	padding: 2px var(--ktube-space-sm);
+	background: var(--ktube-color-bg);
+	border: 1px solid color-mix(in srgb, var(--ktube-color-text) 12%, transparent);
+	border-radius: 6px;
+	font-family: var(--wp--preset--font-family--monospace, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+	font-size: 0.9em;
+	color: var(--ktube-color-link);
+	overflow-wrap: anywhere;
+}
+.ktube-privacy-summary__unit {
+	color: color-mix(in srgb, var(--ktube-color-text) 65%, transparent);
+	font-size: 0.9em;
+}
+.ktube-privacy-summary__description {
+	margin: var(--ktube-space-xs) 0 0;
+	color: color-mix(in srgb, var(--ktube-color-text) 75%, transparent);
+	font-size: 0.95rem;
+	line-height: 1.5;
+}
+@media (max-width: 640px) {
+	.ktube-privacy-summary__row {
+		grid-template-columns: 1fr;
+		gap: var(--ktube-space-xs);
+	}
+}
