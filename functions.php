@@ -147,6 +147,9 @@ require_once KTUBE_DIR . '/includes/age-gate.php';
 require_once KTUBE_DIR . '/includes/privacy.php';
 require_once KTUBE_DIR . '/includes/compliance-pages.php';
 require_once KTUBE_DIR . '/includes/gdpr.php';
+require_once KTUBE_DIR . '/includes/critical-css.php';
+require_once KTUBE_DIR . '/includes/image-formats.php';
+require_once KTUBE_DIR . '/includes/player-depth.php';
 
 add_action( 'init', 'ktube_register_taxonomies', 8 );
 add_action( 'init', 'ktube_register_post_types', 9 );
@@ -161,3 +164,6 @@ add_action( 'init', 'ktube_register_age_gate', 15 );
 add_action( 'init', 'ktube_register_privacy', 16 );
 add_action( 'init', 'ktube_register_compliance_pages', 17 );
 add_action( 'init', 'ktube_register_gdpr', 18 );
+add_action( 'init', 'ktube_register_critical_css', 19 );
+add_action( 'init', 'ktube_register_image_formats', 20 );
+add_action( 'init', 'ktube_register_player_depth', 21 );

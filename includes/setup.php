@@ -167,10 +167,25 @@ add_action( 'wp_enqueue_scripts', 'ktube_enqueue_trailer_controller', 12 );
 /**
  * ktube_enqueue_lightbox — single-photo + archive-photo only.
  * Native HTMLDialogElement provides focus trap + Esc-to-close.
+ *
+ * Phase 14 perf (2026-06-21) — deferred-stylesheet split. The photo
+ * grid + lightbox CSS now live in assets/css/lightbox.css rather than
+ * shipping inside assets/css/main.css. This enqueue loads the
+ * stylesheet ONLY on photo templates, removing ~6 KB of unused CSS
+ * from every non-photo page load.
  */
 function ktube_enqueue_lightbox(): void {
 	if ( ! ( is_singular( 'photo' ) || is_post_type_archive( 'photo' ) ) ) {
 		return;
+	}
+	$css_path = KTUBE_DIR . '/assets/css/lightbox.css';
+	if ( file_exists( $css_path ) ) {
+		wp_enqueue_style(
+			'ktube-lightbox-css',
+			KTUBE_URI . '/assets/css/lightbox.css',
+			array( 'ktube-main' ),
+			ktube_asset_version( $css_path )
+		);
 	}
 	$js_path = KTUBE_DIR . '/assets/js/lightbox-controller.js';
 	if ( file_exists( $js_path ) ) {

@@ -1,20 +1,4 @@
-name: CI
-
-# Phase 10 (2026-06-21) — full CI matrix.
-#
-# Replaces the pre-Phase-10 single-job reality (`build-enforcement.yml`
-# + manual Lighthouse run) with a single workflow that exercises every
-# static-analysis + test surface on every push + PR. The validate job is
-# the same as build-enforcement.yml (asset presence + PHP lint + vendor
-# SHA-256 contract). The phpunit job runs the composer-free test suite
-# from tests/phpunit/run.php (PHPUnit under vendor is optional — the
-# pure-PHP runner is the canonical path).
-#
-# The vitest job is the only job that touches Node. ktube's build
-# pipeline is hand-managed (Phase 0-A reversal); vitest is dev-only
-# for the `tests/js/` suite.
-#
-# Failures short-circuit downstream jobs via needs:.
+name: ci
 
 on:
   push:
@@ -23,71 +7,79 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
+# Fail-fast OFF: one PHP-version failure shouldn't mask a Node-side failure
+# (and vice-versa) in the same matrix sweep.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
-    name: Hand-managed asset layout + PHP lint
+    name: validate (node tools/validate.mjs + php -l)
     runs-on: ubuntu-latest
-    timeout-minutes: 3
-
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3']
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup PHP 8.3
+      - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: ${{ matrix.php }}
+          coverage: none
 
-      - name: Setup Node 20
+      - name: Setup Node 20 (lint pass only — no install needed for validate.mjs)
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Asset presence + VENDORED byte-identity + PHP -l
+      - name: node tools/validate.mjs
         run: node tools/validate.mjs
 
+      - name: php -l over includes/
+        run: |
+          find . -path ./node_modules -prune -o -path ./.git -prune -o -path ./tests -prune -o -name '*.php' -print0 \
+            | while IFS= read -r -d '' f; do php -l "$f"; done
+
   phpunit:
-    name: PHPUnit (composer-free)
+    name: phpunit (composer-free runner)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.3', '8.2']
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup PHP 8.3
+      - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: ${{ matrix.php }}
+          coverage: none
 
-      - name: Run php tests/phpunit/run.php
-        # Pure-PHP runner — no composer install required. Output is the
-        # same shape developers see locally; a fail here short-circuits.
+      - name: composer-free PHPUnit runner
         run: php tests/phpunit/run.php
 
   vitest:
-    name: Vitest (JS test suite)
+    name: vitest (jsdom, node 20)
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node 20
+      - name: Setup Node ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ matrix.node }}
+          cache: 'npm'
 
-      # The dev-only vitest + jsdom come from package.json. We do NOT
-      # scope to a specific version so a moving minor version works; if
-      # the test ever drifts to a breaking change, the `package-lock.json`
-      # (Phase 0-A planned but not yet committed) would lock it.
-      - name: Install dev dependencies
-        run: npm install --no-audit --no-fund
+      - name: npm ci (vitest + jsdom devDeps only)
+        run: npm ci --no-audit --no-fund
 
-      - name: Run vitest
+      - name: vitest run
         run: npm test

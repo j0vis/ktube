@@ -172,6 +172,23 @@ namespace {
 	if ( ! defined( 'KTUBE_VERSION' ) ) {
 		define( 'KTUBE_VERSION', '0.1.0' );
 	}
+	// The theme's functions.php defines KTUBE_DIR / KTUBE_URI alongside
+	// KTUBE_VERSION. The bootstrap can't load functions.php (it transitively
+	// bootstraps wp_get_theme() etc.) so we mirror the same defines here.
+	// Production module paths read KTUBE_DIR . '/assets/...' so a missing
+	// definition is a PHP 8 fatal under tests.
+	if ( ! defined( 'KTUBE_DIR' ) ) {
+		define( 'KTUBE_DIR', get_template_directory() );
+	}
+	if ( ! defined( 'KTUBE_URI' ) ) {
+		define( 'KTUBE_URI', get_template_directory_uri() );
+	}
+	if ( ! defined( 'KTUBE_MIN_PHP' ) ) {
+		define( 'KTUBE_MIN_PHP', '8.0' );
+	}
+	if ( ! defined( 'KTUBE_MIN_WP' ) ) {
+		define( 'KTUBE_MIN_WP', '6.5' );
+	}
 
 	/**
 	 * Test-controllable theme_mod bag. Tests use set_theme_mod_test() to
@@ -302,10 +319,18 @@ namespace {
 	function is_singular( $ktube_type = '' ) {
 		// Test-controllable via $GLOBALS['__ktube_test_is_singular_types']
 		// (array of post types). Default false (matches no-call real WP).
+		$ktube_types = $GLOBALS['__ktube_test_is_singular_types'] ?? array();
 		if ( empty( $ktube_type ) ) {
 			return ! empty( $GLOBALS['__ktube_test_is_singular'] );
 		}
-		$ktube_types = $GLOBALS['__ktube_test_is_singular_types'] ?? array();
+		if ( is_array( $ktube_type ) ) {
+			foreach ( $ktube_type as $ktube_one ) {
+				if ( in_array( (string) $ktube_one, $ktube_types, true ) ) {
+					return true;
+				}
+			}
+			return false;
+		}
 		return in_array( (string) $ktube_type, $ktube_types, true );
 	}
 	function is_front_page() {
@@ -342,6 +367,21 @@ namespace {
 	}
 	function set_post_thumbnail_test( int $ktube_post_id, int $ktube_thumb_id ): void {
 		$GLOBALS['__ktube_post_thumbnails'][ $ktube_post_id ] = $ktube_thumb_id;
+	}
+	// wp_get_upload_dir — Phase 14 perf test harness stub. Returns an
+	// empty basedir/baseurl so image-forms test paths that don't override
+	// the upload_dir filter early-bail inside ktube_prepend_modern_format_candidates
+	// without touching the disk. Tests that need a fixture directory set
+	// the `upload_dir` filter to point at it.
+	if ( ! function_exists( 'wp_get_upload_dir' ) ) {
+		function wp_get_upload_dir() {
+			$ktube_out = array(
+				'basedir' => '',
+				'baseurl' => '',
+				'error'   => false,
+			);
+			return apply_filters( 'upload_dir', $ktube_out );
+		}
 	}
 	function reset_post_thumbnails_test(): void {
 		$GLOBALS['__ktube_post_thumbnails'] = array();
@@ -732,6 +772,18 @@ namespace {
 	$ktube_test_gdpr = __DIR__ . '/../../includes/gdpr.php';
 	if ( file_exists( $ktube_test_gdpr ) ) {
 		require_once $ktube_test_gdpr;
+	}
+	$ktube_test_critical_css = __DIR__ . '/../../includes/critical-css.php';
+	if ( file_exists( $ktube_test_critical_css ) ) {
+		require_once $ktube_test_critical_css;
+	}
+	$ktube_test_image_formats = __DIR__ . '/../../includes/image-formats.php';
+	if ( file_exists( $ktube_test_image_formats ) ) {
+		require_once $ktube_test_image_formats;
+	}
+	$ktube_test_player_depth = __DIR__ . '/../../includes/player-depth.php';
+	if ( file_exists( $ktube_test_player_depth ) ) {
+		require_once $ktube_test_player_depth;
 	}
 
 	$ktube_test_schema = __DIR__ . '/../../includes/seo/schema.php';

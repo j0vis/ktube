@@ -41,6 +41,8 @@ class AssetLayoutTest extends TestCase {
 		'includes/wps-compat/importer-adapter.php',
 		'includes/template-functions.php',
 		'assets/css/main.css',
+		'assets/css/critical.css',
+		'assets/css/lightbox.css',
 		'assets/js/main.js',
 		'assets/js/player.js',
 		'assets/js/dark-mode.js',
