@@ -1,0 +1,27 @@
+{
+  "schema": "ktube.vendor.videojs/3",
+  "generated_at": "2026-06-21",
+  "vendor": "Video.js",
+  "license": "Apache-2.0",
+  "license_compliance": "LICENSE is shipped verbatim (Apache-2.0 §4a). Video.js 8 does NOT ship an upstream NOTICE file at github.com/videojs/video.js/blob/main/NOTICE — Apache-2.0 §4d only requires NOTICE if upstream ships one, so this absence is best-effort compliance, not a gap.",
+  "notice": "These files are vendored under Video.js's Apache-2.0 license. See assets/vendor/videojs/LICENSE for the full text. Vendoring keeps the repo npm-free per Phase 0-A 2026-06-21.",
+  "drift_check": "tools/validate.mjs recomputes SHA-256 of every entry below and fails the run if any byte count or hash differs. Pin a new version by editing both 'version' fields and the matching sha256 below.",
+  "files": [
+    {
+      "path": "video.min.js",
+      "role": "Video.js core + bundled videojs-http-streaming (HLS/DASH)",
+      "url": "https://unpkg.com/video.js@8.17.4/dist/video.min.js",
+      "version": "8.17.4",
+      "size_bytes": 665569,
+      "sha256": "cd63136622c47da2492a6ac5b91078e21b3ffe61c094ad022ca7502af80ad97c"
+    },
+    {
+      "path": "video-js.min.css",
+      "role": "Video.js stylesheet (.video-js / .vjs-default-skin)",
+      "url": "https://unpkg.com/video.js@8.17.4/dist/video-js.min.css",
+      "version": "8.17.4",
+      "size_bytes": 47002,
+      "sha256": "3815bc7de130162888eeb7468f7a7398f1e2c65d6b9baf0e6607a88056af19ab"
+    }
+  ]
+}
