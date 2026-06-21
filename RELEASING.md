@@ -121,3 +121,76 @@ WordPress admin → Appearance → Themes → Add New → Upload Theme → Choos
 provenance to git history. If a downstream tool ever needs a checksum
 file again, generate it at release time from `node tools/validate.mjs`'s
 list of required paths.
+
+---
+
+## Performance caveats
+
+The current release ships **without** a captured PSI baseline, and
+several known performance-margin trade-offs apply. Read these before
+claiming a Lighthouse or PageSpeed score in public.
+
+1. **HLS / MPEG-DASH is not vendored.** `assets/vendor/videojs/video.min.js`
+   is the Video.js 8 **core** build only — `videojs-http-streaming` (VHS)
+   is intentionally not vendored. `.m3u8` and `.mpd` streams will fail.
+   H.264 progressive `.mp4` plays in all current single-bitrate paths.
+   *Operator impact:* any imported video using HLS packaging surfaces as
+   `playback error` in the player. *Code locations:*
+   `includes/setup.php::ktube_enqueue_player()` (the `ktube_has_wps_player()`
+   short-circuit) and the absence of `videojs-http-streaming` in `package.json`.
+   *Mitigation:* ship the §5-B ❌ Player depth work (lazy-import behind a
+   Customizer flag plus a `Hls.isSupported()` probe) before serving HLS;
+   or activate WPS Clean Tube Player on those videos.
+
+2. **Video.js core raw size is ~75% above the brief's 150 KB target.**
+   Phase 3b import-path swap trimmed Video.js from 695 KB raw / 206 KB
+   gzip to **263 KB raw / 76 KB gzip** (~two-thirds lighter), but the
+   brief's 150 KB raw target still isn't met. *Mitigation:* the §5-B ❌
+   Player depth work is the next reduction, NOT another `video.js/*`
+   import path.
+
+3. **No AVIF / WebP image-format negotiation.** WordPress's default
+   pixel-format pipeline is used. Authors uploading JPEGs / PNGs get
+   those; no AVIF / WebP variants are produced at upload time.
+   *Operator impact:* image bytes on the critical path are larger than
+   on modern sites. *Mitigation:* until §5-B ❌ Phase 14 perf ships,
+   run a server-side image-optimisation MU-plugin (ShortPixel / Imagify /
+   WP-Optimize equivalent) outside the theme.
+
+4. **Lightbox CSS bundles on every template, not just photo singles.**
+   `assets/css/main.css` ships the lightbox modal stylesheet
+   unconditionally. *Mitigation:* deferral-to-photo-singles lives in
+   §5-B ❌ Phase 14 perf.
+
+5. **No above-the-fold critical-CSS inlining.** `assets/css/main.css`
+   is served whole in `<head>`. *Operator impact:* the stylesheet
+   blocks paint while it downloads; on slow 3G the visitor sees a flash
+   before the page content. *Mitigation:* until §5-B ❌ Phase 14 perf
+   ships, use Cloudflare's "Auto Minify" + "Rocket Loader" toggles (or
+   equivalent) as an MU-plugin or origin strategy.
+
+6. **PSI workflow ships but no captured baseline yet.**
+   `.github/workflows/psi.yml` directly invokes PageSpeed Insights v5
+   REST API via `curl` — no Lighthouse-npm dependency, no headless
+   Chrome. Trigger manually with `workflow_dispatch` against a deployed
+   URL (inputs: `url`, `strategy`, `threshold`). Raw JSON auto-uploads
+   as run-id artifact. Once a baseline is captured, the workflow gate-
+   fails any future asset-touching change below the configured threshold
+   (default 90).
+
+For a runtime reality check before public launch, run the PSI workflow
+against a deployed URL and capture the JSON:
+
+1. `gh workflow run psi.yml -f url=https://your-ktheme.example.com`
+2. Wait for the run; download the run-id artifact; archive the JSON.
+
+No baseline has been captured against any deployment. **Do not quote
+Lighthouse or PageSpeed numbers in public channels** until you have
+run the PSI workflow against your own deployment and recorded the
+resulting JSON in your release notes. Numbers listed elsewhere in this
+document (the per-caveat size/byte trade-offs) are measured; the per-
+category Performance/Accessibility/Best-Practices score is **not** —
+the brief's 100/100/100 target has not been verified for any release
+of ktube yet, and the open items in §5-B's Player depth + Phase 14
+perf make it prudent to assume headroom rather than advertise a
+specific number.
