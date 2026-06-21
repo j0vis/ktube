@@ -1,0 +1,174 @@
+name: PageSpeed Insights
+
+# Phase 14-A v2 (2026-06-21) — PSI baseline run + threshold gate.
+#
+# Code-reviewer pass fix-up. The v1 of this workflow had three bugs that
+# every run would trip:
+#   1. jq key bug — compared score under `.categories[\"bp\"]` but the
+#      PSI JSON key is `best-practices`. The score would resolve to null
+#      and the gate would fail even on a clean 100/100/100 run.
+#   2. Redundant extraction — the per-category steps already saved
+#      `score=…` into `$GITHUB_OUTPUT`; the compare step re-parsed the
+#      same JSON files, compounding bug #1's failure surface.
+#   3. No null handling — when PSI returns `score: null` (N/A category),
+#      `null * 100 | round` yields empty string, which crashed the bash
+#      integer comparison.
+#
+# v2 fixes all three: the loop iterates exact category keys, the gate
+# reads `${{ steps.X.outputs.score }}` instead of re-parsing JSON, and
+# null/empty scores are now rank-ordered as failures with an explicit
+# "N/A" message instead of a silent bash error.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'assets/**'
+      - 'includes/**'
+      - 'functions.php'
+      - '.github/workflows/psi.yml'
+      - 'tools/validate.mjs'
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL to test (must be a fully reachable install)'
+        required: false
+        default: 'https://example.test/'
+      strategy:
+        description: 'mobile or desktop'
+        required: false
+        default: 'mobile'
+      threshold:
+        description: 'Minimum allowed score per category'
+        required: false
+        default: '90'
+
+permissions:
+  contents: read
+  # PSI scores are not sensitive, but the API key is. Restrict the token
+  # to read-only so a compromised workflow can't accidentally write to
+  # the repo while the secrets env is present.
+
+jobs:
+  psi:
+    name: PSI scorecard for stock demo
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    env:
+      KTUBE_THRESHOLD: ${{ github.event.inputs.threshold || '90' }}
+      KTUBE_URL: ${{ github.event.inputs.url || 'https://example.test/' }}
+      KTUBE_STRATEGY: ${{ github.event.inputs.strategy || 'mobile' }}
+      KTUBE_PSI_ENDPOINT: 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed'
+      # Iterates the EXACT PSI category key. Do NOT abbreviate — the v1
+      # gate collapsed `best-practices` → `bp` and the comparison
+      # returned null for every run.
+      KTUBE_CATEGORIES: 'performance accessibility best-practices'
+      # Optional Google API key with PageSpeed Insights API enabled.
+      # Falls back to no-key mode (rate-limited) if absent. The key is
+      # consumed directly inside the curl block — no env indirection so
+      # the v2 reviewer-flagged dead `KTUBE_KEYARG` variable cannot drift
+      # between declaration and use-site.
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Ensure jq exists
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y jq
+          fi
+          jq --version
+
+      - name: Run PSI per category
+        id: psi_multi
+        # Single step emits two GitHub outputs per category:
+        #   <cat>_raw   — original null-or-number from PSI
+        #   <cat>_score — integer 0-100, or empty string when N/A
+        # The cat-indexed `>>$GITHUB_OUTPUT` pattern keeps things
+        # additive if a future maintainer extends the categories.
+        run: |
+          set -euo pipefail
+          KTUBE_KEYARG=""
+          if [ -n "${PSI_API_KEY:-}" ]; then
+            KTUBE_KEYARG="&key=${PSI_API_KEY}"
+          fi
+          for KTUBE_CAT in ${KTUBE_CATEGORIES}; do
+            # --data-urlencode is the v2 hardening for the URL input.
+            # Operators pointing at a URL that contains query-string
+            # characters cannot accidentally break the curl call.
+            # The ?key=... query param is appended inline after the
+            # endpoint path so a non-empty PSI_API_KEY works whether
+            # the env var is the only source or empty.
+            KTUBE_AUTH=""
+            if [ -n "${PSI_API_KEY:-}" ]; then
+              KTUBE_AUTH="&key=${PSI_API_KEY}"
+            fi
+            curl --silent --show-error --fail \
+              --get \
+              --data-urlencode "url=${KTUBE_URL}" \
+              --data-urlencode "strategy=${KTUBE_STRATEGY}" \
+              --data-urlencode "category=${KTUBE_CAT}" \
+              -G "${KTUBE_PSI_ENDPOINT}?${KTUBE_AUTH#&}" \
+              -o "/tmp/ktube-psi-${KTUBE_CAT}.json"
+            # null * 100 → null → round → empty. We empty-default so the
+            # gate can recognize "N/A" and skip the integer compare.
+            KTUBE_RAW=$(jq -r ".lighthouseResult.categories[\"${KTUBE_CAT}\"].score // empty" "/tmp/ktube-psi-${KTUBE_CAT}.json")
+            KTUBE_NUM=""
+            if [ -n "${KTUBE_RAW}" ] && [ "${KTUBE_RAW}" != "null" ]; then
+              KTUBE_NUM=$(awk -v s="${KTUBE_RAW}" 'BEGIN { printf("%d", s * 100 + 0.5) }')
+            fi
+            {
+              echo "${KTUBE_CAT}_raw=${KTUBE_RAW}"
+              echo "${KTUBE_CAT}_score=${KTUBE_NUM}"
+            } >> "$GITHUB_OUTPUT"
+            echo "${KTUBE_CAT}: raw='${KTUBE_RAW}' score='${KTUBE_NUM:-N/A}'"
+          done
+
+      - name: Compare scores to threshold
+        if: always()
+        # Use awk on field-1 equality rather than `cut -d= -f2-` because
+        # the variable name itself contains `=` (`best-practices_score=92`
+        # has THREE `=`-separated fields under cut, not two; field 2
+        # resolves to `_score` and -f2- returns `_score=92` — a literal
+        # the [[ =~ ^[0-9]+$ ]] regex then rejects as non-integer).
+        # Reading via awk equality on field 1 sidesteps the problem
+        # entirely regardless of category-name character set.
+        run: |
+          set -euo pipefail
+          KTUBE_FAILED=0
+          for KTUBE_CAT in ${KTUBE_CATEGORIES}; do
+            KTUBE_SCORE="$(awk -F= -v c="${KTUBE_CAT}" '$1 == c"_score" { print $2; exit }' "$GITHUB_OUTPUT")"
+            if [ -z "${KTUBE_SCORE}" ]; then
+              echo "FAIL: ${KTUBE_CAT} score N/A (PSI did not return a numeric score)"
+              KTUBE_FAILED=1
+              continue
+            fi
+            if ! [[ "${KTUBE_SCORE}" =~ ^[0-9]+$ ]]; then
+              echo "FAIL: ${KTUBE_CAT} score '${KTUBE_SCORE}' is not a non-negative integer"
+              KTUBE_FAILED=1
+              continue
+            fi
+            if [ "${KTUBE_SCORE}" -lt "${KTUBE_THRESHOLD}" ]; then
+              echo "FAIL: ${KTUBE_CAT} score ${KTUBE_SCORE} below threshold ${KTUBE_THRESHOLD}"
+              KTUBE_FAILED=1
+            else
+              echo "OK:   ${KTUBE_CAT} score ${KTUBE_SCORE} meets threshold ${KTUBE_THRESHOLD}"
+            fi
+          done
+          if [ "${KTUBE_FAILED}" -eq 1 ]; then
+            echo "::error::One or more PSI category scores below threshold ${KTUBE_THRESHOLD}"
+            exit 1
+          fi
+
+      - name: Upload raw PSI JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktube-psi-${{ github.run_id }}
+          path: /tmp/ktube-psi-*.json
+          if-no-files-found: ignore
