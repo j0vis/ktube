@@ -1,0 +1,93 @@
+name: CI
+
+# Phase 10 (2026-06-21) — full CI matrix.
+#
+# Replaces the pre-Phase-10 single-job reality (`build-enforcement.yml`
+# + manual Lighthouse run) with a single workflow that exercises every
+# static-analysis + test surface on every push + PR. The validate job is
+# the same as build-enforcement.yml (asset presence + PHP lint + vendor
+# SHA-256 contract). The phpunit job runs the composer-free test suite
+# from tests/phpunit/run.php (PHPUnit under vendor is optional — the
+# pure-PHP runner is the canonical path).
+#
+# The vitest job is the only job that touches Node. ktube's build
+# pipeline is hand-managed (Phase 0-A reversal); vitest is dev-only
+# for the `tests/js/` suite.
+#
+# Failures short-circuit downstream jobs via needs:.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Hand-managed asset layout + PHP lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Asset presence + VENDORED byte-identity + PHP -l
+        run: node tools/validate.mjs
+
+  phpunit:
+    name: PHPUnit (composer-free)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Run php tests/phpunit/run.php
+        # Pure-PHP runner — no composer install required. Output is the
+        # same shape developers see locally; a fail here short-circuits.
+        run: php tests/phpunit/run.php
+
+  vitest:
+    name: Vitest (JS test suite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The dev-only vitest + jsdom come from package.json. We do NOT
+      # scope to a specific version so a moving minor version works; if
+      # the test ever drifts to a breaking change, the `package-lock.json`
+      # (Phase 0-A planned but not yet committed) would lock it.
+      - name: Install dev dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run vitest
+        run: npm test

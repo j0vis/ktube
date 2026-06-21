@@ -1,0 +1,44 @@
+name: Build guard
+
+# Channel-agnostic on purpose.
+#
+# Phase 0-A (2026-06-21): this workflow no longer installs Node / runs Vite.
+# The hand-managed asset layout (assets/css/, assets/js/, assets/vendor/)
+# is the source of truth that ships via `git clone` to end users. The
+# guard is now a smoke check: does every required asset exist? is every
+# .php file syntax-clean? are forbidden paths (vite.config.js,
+# assets/dist/, assets/src/) really gone? This is runnable on any CI
+# runner that has `php` and `node` — both of which are presumed-available
+# on a typical PHP-project CI image.
+#
+# If a release pipeline used to dictate the order of graph traversal
+# (build → manifest → publish), this file no longer cares about publish;
+# it only asserts "the source tree is in the shape maintainers expect".
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate hand-managed asset layout
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Asset presence + PHP syntax check
+        run: node tools/validate.mjs

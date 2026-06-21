@@ -1,0 +1,38 @@
+name: Lighthouse
+
+# Phase 0-A (2026-06-21) reversal: the build step no longer installs
+# Node deps or runs Vite — assets/{css,js,videojs} are committed static
+# files that ship at clone-time. The Lighthouse job reads the committed
+# files directly. `.lighthouserc.json` continues to point at either
+# real WP endpoints (Phase 5) or staticDistDir HTML output (Phase 9).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify hand-managed asset layout
+        run: |
+          test -f assets/css/main.css || { echo "missing assets/css/main.css"; exit 1; }
+          test -f assets/js/main.js   || { echo "missing assets/js/main.js";   exit 1; }
+          test -f assets/js/player.js            || { echo "missing assets/js/player.js";            exit 1; }
+          test -f assets/js/dark-mode.js         || { echo "missing assets/js/dark-mode.js";         exit 1; }
+          test -f assets/js/video-grid.js        || { echo "missing assets/js/video-grid.js";        exit 1; }
+          test -f assets/js/lightbox-controller.js || { echo "missing assets/js/lightbox-controller.js"; exit 1; }
+          test -f assets/js/customize-controls.js || { echo "missing assets/js/customize-controls.js"; exit 1; }
+          test -f assets/js/age-gate.js        || { echo "missing assets/js/age-gate.js";        exit 1; }
+          test -f assets/vendor/videojs/video.min.js     || { echo "missing vendored Video.js core";     exit 1; }
+          test -f assets/vendor/videojs/video-js.min.css || { echo "missing vendored Video.js CSS";       exit 1; }
+
+      - uses: treosh/lighthouse-ci-action@v11
+        with:
+          configPath: .lighthouserc.json
+          uploadArtifacts: true
